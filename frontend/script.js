@@ -6,7 +6,7 @@
 const CONFIG = {
     API_URL: window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:8000/analyze'
-        : 'https://your-backend-url.onrender.com/analyze', // Update with your deployed backend URL
+        : 'https://careermap-ai-backend.onrender.com/analyze', // Update with your deployed backend URL
     API_KEY: '', // Optional: add X-API-Key here for a private backend. Not secure in public static builds.
     MAX_FILE_SIZE_MB: 10,
     MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024,
