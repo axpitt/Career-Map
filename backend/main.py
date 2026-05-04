@@ -67,7 +67,7 @@ async def health():
     return {
         "status": "healthy",
         "services": {
-            "openai": "configured" if settings.openai_api_key else "not_configured",
+            "gemini": "configured" if settings.gemini_api_key else "not_configured",
             "rate_limiting": f"{settings.rate_limit_requests}/{settings.rate_limit_window}s",
             "authentication": "enabled" if settings.api_key else "disabled"
         }

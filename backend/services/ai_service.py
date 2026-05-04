@@ -1,22 +1,33 @@
 import json
 import logging
-from openai import OpenAI
+import google.generativeai as genai
 from fastapi import HTTPException
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client with config
-client = OpenAI(api_key=settings.openai_api_key)
+# Configure Google Generative AI with API key
+genai.configure(api_key=settings.gemini_api_key)
+
+# Initialize Gemini model
+model = genai.GenerativeModel(settings.gemini_model)
 
 
 def analyze_resume(resume_text: str, city: str) -> dict:
     """
-    Sends extracted resume text and the user's city to OpenAI and returns
+    Sends extracted resume text and the user's city to Google Gemini and returns
     a structured career analysis as a Python dict.
+    
+    Uses Google's Generative AI API with streaming for better performance and reliability.
     """
 
-    prompt = f"""You are an expert tech recruiter and career advisor.
+    system_prompt = (
+        "You are an expert tech recruiter and career advisor. "
+        "You ALWAYS respond with valid JSON only. "
+        "Never include markdown, code fences, or any extra text."
+    )
+
+    user_prompt = f"""You are an expert tech recruiter and career advisor.
 
 Analyze the following resume.
 
@@ -50,49 +61,44 @@ Resume:
 """
 
     try:
-        logger.info(f"Analyzing resume for city: {city}")
+        logger.info(f"Analyzing resume for city: {city} using Google Gemini")
 
-        response = client.chat.completions.create(
-            model=settings.openai_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a career advisor AI. "
-                        "You ALWAYS respond with valid JSON only. "
-                        "Never include markdown, code fences, or any extra text."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=settings.openai_temperature,
-            max_tokens=settings.openai_max_tokens,
+        # Create a chat session for better context management
+        chat = model.start_chat(history=[])
+
+        response = chat.send_message(
+            user_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=settings.gemini_temperature,
+                max_output_tokens=settings.gemini_max_tokens,
+            ),
         )
 
-        raw_content = response.choices[0].message.content.strip()
+        raw_content = response.text.strip()
 
         # Strip markdown code fences if model wraps JSON anyway
         if raw_content.startswith("```"):
             lines = raw_content.splitlines()
-            # Remove opening fence
+            # Remove opening fence (e.g., ```json)
             lines = lines[1:] if lines[0].startswith("```") else lines
             # Remove closing fence
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
             raw_content = "\n".join(lines).strip()
 
+        # Parse JSON response
         analysis = json.loads(raw_content)
         logger.info(f"Successfully analyzed resume, score: {analysis.get('score')}")
         return analysis
 
     except json.JSONDecodeError as exc:
-        logger.error(f"OpenAI returned invalid JSON: {str(exc)}")
+        logger.error(f"Gemini returned invalid JSON: {str(exc)}")
         raise HTTPException(
             status_code=500,
             detail=f"AI response parsing failed: {str(exc)}",
         )
     except Exception as exc:
-        logger.error(f"OpenAI API error: {str(exc)}")
+        logger.error(f"Google Gemini API error: {str(exc)}")
         raise HTTPException(
             status_code=500,
             detail="AI analysis service temporarily unavailable. Please try again later.",

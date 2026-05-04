@@ -4,11 +4,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # OpenAI Configuration
-    openai_api_key: str
-    openai_model: str = "gpt-4o"
-    openai_temperature: float = 0.4
-    openai_max_tokens: int = 1024
+    # Google Gemini Configuration
+    gemini_api_key: str
+    gemini_model: str = "gemini-2.0-flash"
+    gemini_temperature: float = 0.4
+    gemini_max_tokens: int = 1024
 
     # API Configuration
     api_key: Optional[str] = None  # For authentication
@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        # Allow environment variable names to map to snake_case settings
+        extra = "allow"
 
 
 settings = Settings()
